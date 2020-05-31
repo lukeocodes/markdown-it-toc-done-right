@@ -32,6 +32,7 @@ function tocPlugin (md, options) {
     itemClass: undefined,
     linkClass: undefined,
     level: 1,
+    depth: 0,
     listType: 'ol',
     format: undefined,
     callback: undefined/* function(html, ast) {} */
@@ -118,6 +119,9 @@ function tocPlugin (md, options) {
       ? isLevelSelectedArray(_options.level)
       : isLevelSelectedNumber(_options.level)
 
+    // if isTooDeep is 0 then it can never be too deep
+    const isTooDeep = selection => _options.depth > 0 ? selection > _options.depth : false;
+
     function ast2html (tree) {
       const listClass = _options.listClass ? ` class="${htmlencode(_options.listClass)}"` : ''
       const itemClass = _options.itemClass ? ` class="${htmlencode(_options.itemClass)}"` : ''
@@ -130,11 +134,13 @@ function tocPlugin (md, options) {
         buffer += (`<${htmlencode(_options.listType) + listClass}>`)
       }
       tree.c.forEach(node => {
-        if (isLevelSelected(node.l)) {
-          buffer += (`<li${itemClass}><a${linkClass} href="#${unique(options.slugify(node.n))}">${typeof _options.format === 'function' ? _options.format(node.n, htmlencode) : htmlencode(node.n)}</a>${ast2html(node)}</li>`)
-        } else {
-          // unique(options.slugify(node.n))
-          buffer += ast2html(node)
+        if (!isTooDeep(node.l)) {
+          if (isLevelSelected(node.l)) {
+            buffer += (`<li${itemClass}><a${linkClass} href="#${unique(options.slugify(node.n))}">${node.l} ${typeof _options.format === 'function' ? _options.format(node.n, htmlencode) : htmlencode(node.n)}</a>${ast2html(node)}</li>`)
+          } else {
+            // unique(options.slugify(node.n))
+            buffer += ast2html(node)
+          }
         }
       })
       if (tree.l === 0 || isLevelSelected(tree.l)) {
